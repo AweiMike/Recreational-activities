@@ -218,7 +218,7 @@ db.serialize(() => {
               { name: '李世上', dependents: 0, relation: '本人', total: 1 },
               { name: '鄭文興', dependents: 1, relation: '眷屬', total: 2 },
               { name: '鄭玠琳', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '陳信淮', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳信淮', dependents: 1, relation: '眷屬', total: 2 },
               { name: '李金安', dependents: 1, relation: '眷屬', total: 2 },
               { name: '郭俊億', dependents: 0, relation: '本人', total: 1 },
               { name: '黃振原', dependents: 1, relation: '眷屬', total: 2 },
