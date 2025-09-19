@@ -101,10 +101,10 @@ db.serialize(() => {
     if (row.count === 0) {
       // 建立所有活動
       const initialEvents = [
-        { name: '新化分局文康活動旭集餐廳 - 9月22日', date: '2025-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
-        { name: '新化分局文康活動旭集餐廳 - 9月23日', date: '2025-09-23', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092311040' },
-        { name: '新化分局文康活動旭集餐廳 - 9月25日', date: '2025-09-25', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092511059' },
-        { name: '新化分局文康活動旭集餐廳 - 9月26日', date: '2025-09-26', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092611055' }
+        { name: '新化分局文康活動旭集餐廳 - 9月22日', date: '2024-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
+        { name: '新化分局文康活動旭集餐廳 - 9月23日', date: '2024-09-23', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092311040' },
+        { name: '新化分局文康活動旭集餐廳 - 9月25日', date: '2024-09-25', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092511059' },
+        { name: '新化分局文康活動旭集餐廳 - 9月26日', date: '2024-09-26', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092611055' }
       ];
 
       const eventStmt = db.prepare(`INSERT INTO events (name, date, time, location) VALUES (?, ?, ?, ?)`);
@@ -186,14 +186,14 @@ db.serialize(() => {
             stmt23.finalize();
           }
           
-          // 9月25日活動參加者
+          // 9月25日活動參加者 - 訂位編號 TNXU2025092511059
           if (index === 2) {
             const event0925Attendees = [
               { name: '徐天位', dependents: 0, relation: '本人', total: 1 },
               { name: '謝昌佑', dependents: 0, relation: '本人', total: 1 },
               { name: '王耀賢', dependents: 0, relation: '本人', total: 1 },
               { name: '張宗龍', dependents: 0, relation: '本人', total: 1 },
-              { name: '黃昌鈐', dependents: 0, relation: '本人', total: 1 },
+              { name: '黃昜鈞', dependents: 0, relation: '本人', total: 1 },
               { name: '林秀翰', dependents: 0, relation: '本人', total: 1 },
               { name: '姜耀棠', dependents: 1, relation: '眷屬', total: 2 },
               { name: '楊家豪', dependents: 0, relation: '本人', total: 1 },
@@ -210,7 +210,7 @@ db.serialize(() => {
             stmt25.finalize();
           }
           
-          // 9月26日活動參加者
+          // 9月26日活動參加者 - 訂位編號 TNXU2025092611055
           if (index === 3) {
             const event0926Attendees = [
               { name: '卓新裕', dependents: 0, relation: '本人', total: 1 },
@@ -228,7 +228,7 @@ db.serialize(() => {
               { name: '朱唐緯', dependents: 0, relation: '本人', total: 1 },
               { name: '曾靖宜', dependents: 0, relation: '本人', total: 1 },
               { name: '林冠宏', dependents: 0, relation: '本人', total: 1 },
-              { name: '林芗玄', dependents: 0, relation: '本人', total: 1 },
+              { name: '林芷玄', dependents: 0, relation: '本人', total: 1 },
               { name: '黃壁儒', dependents: 1, relation: '眷屬', total: 2 },
               { name: '楊登旭', dependents: 0, relation: '本人', total: 1 },
               { name: '蔡宙宏', dependents: 0, relation: '本人', total: 1 },
