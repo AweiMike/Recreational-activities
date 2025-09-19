@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動管理後台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .status-checked-in { background-color: #dcfce7; color: #166534; border-left: 4px solid #22c55e; }
+        .status-pending { background-color: #f3f4f6; border-left: 4px solid #9ca3af; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .toast.show { opacity: 1; visibility: visible; }
+        .connection-indicator { position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; z-index: 1000; }
+        .connected { background-color: #22c55e; color: white; }
+        .disconnected { background-color: #ef4444; color: white; }
+        .connecting { background-color: #f59e0b; color: white; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .pulse-animation { animation: pulse 1s infinite; }
+        .event-card { transition: all 0.3s ease; }
+        .event-card:hover { transform: translateY(-2px); }
+        .active-event { border: 3px solid #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="connection-status" class="connection-indicator connecting">連線中...</div>
+
+    <div class="container mx-auto p-4 md:p-6 max-w-7xl">
+        <div class="text-center mb-2">
+            <a href="/login.html" class="text-blue-600 hover:text-blue-800 text-sm">← 返回登入</a>
+        </div>
+
+        <header class="text-center mb-8 fade-in">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">活動管理後台</h1>
+            <p class="text-lg text-gray-600">管理員專用 - 全部活動總覽</p>
+        </header>
+
+        <!-- 活動選擇 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 fade-in" style="animation-delay: 0.1s;">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">📅 選擇活動</h2>
+            <div id="events-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- 當前活動詳情 -->
+        <div id="current-event-section" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- 統計資料 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md fade-in" style="animation-delay: 0.2s;">
+                        <h2 class="text-xl font-semibold mb-4 border-b pb-2">📊 即時統計</h2>
+                        <div id="stats-container" class="space-y-3 text-gray-700"></div>
+                        <button id="confirm-restaurant-btn" class="w-full mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">與餐廳核對人數</button>
+                    </div>
+                    
+                    <!-- 圖片管理 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md fade-in" style="animation-delay: 0.3s;">
+                        <h2 class="text-xl font-semibold mb-4 border-b pb-2">📍 集合地點圖片</h2>
+                        <div id="image-preview-container" class="hidden mb-4 border-2 border-dashed rounded-lg p-2">
+                            <img id="image-preview" src="#" alt="集合地點圖片" class="max-w-full h-auto rounded-md mx-auto">
+                        </div>
+                        <p id="image-placeholder" class="text-center text-gray-500 mb-4">尚未上傳圖片</p>
+                        <input type="file" id="image-uploader" class="hidden" accept="image/*">
+                        <button id="upload-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 mb-2">上傳/更換圖片</button>
+                        <p class="text-xs text-center text-gray-500">圖片將同步到所有裝置</p>
+                    </div>
+                </div>
+                
+                <!-- 參加者名單 -->
+                <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl shadow-md fade-in" style="animation-delay: 0.4s;">
+                    <h2 class="text-xl font-semibold mb-4 flex justify-between items-center">
+                        <span id="attendees-title">參加人員名單</span>
+                        <div class="flex space-x-2">
+                            <span id="online-users" class="text-sm text-blue-600 mr-4">線上人數: 載入中...</span>
+                            <button id="reset-btn" class="text-xs bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md">重設所有資料</button>
+                        </div>
+                    </h2>
+                    <div id="attendee-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 確認對話框 -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-8 m-4 max-w-md w-full">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">與餐廳核對人數</h3>
+            <div id="confirmation-content" class="text-gray-700 mb-6"></div>
+            <div class="flex space-x-4">
+                <button id="copy-message-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">複製訊息</button>
+                <button id="close-modal-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="toast"></div>
+
+    <script>
+        class AdminSystem {
+            constructor() {
+                this.socket = null;
+                this.events = [];
+                this.currentEventId = null;
+                this.attendees = [];
+                this.isConnected = false;
+                this.init();
+            }
+
+            init() {
+                this.initElements();
+                this.connectSocket();
+                this.loadEvents();
+                this.bindEvents();
+            }
+
+            initElements() {
+                this.eventsList = document.getElementById('events-list');
+                this.currentEventSection = document.getElementById('current-event-section');
+                this.attendeeList = document.getElementById('attendee-list');
+                this.statsContainer = document.getElementById('stats-container');
+                this.attendeesTitle = document.getElementById('attendees-title');
+                this.confirmRestaurantBtn = document.getElementById('confirm-restaurant-btn');
+                this.uploadBtn = document.getElementById('upload-btn');
+                this.imageUploader = document.getElementById('image-uploader');
+                this.imagePreview = document.getElementById('image-preview');
+                this.imagePreviewContainer = document.getElementById('image-preview-container');
+                this.imagePlaceholder = document.getElementById('image-placeholder');
+                this.resetBtn = document.getElementById('reset-btn');
+                this.toast = document.getElementById('toast-notification');
+                this.connectionStatus = document.getElementById('connection-status');
+                this.onlineUsers = document.getElementById('online-users');
+                this.confirmationModal = document.getElementById('confirmation-modal');
+                this.confirmationContent = document.getElementById('confirmation-content');
+                this.copyMessageBtn = document.getElementById('copy-message-btn');
+                this.closeModalBtn = document.getElementById('close-modal-btn');
+            }
+
+            connectSocket() {
+                this.socket = io();
+                
+                this.socket.on('connect', () => {
+                    this.isConnected = true;
+                    this.updateConnectionStatus();
+                    this.showToast('已連接到伺服器', false);
+                });
+
+                this.socket.on('disconnect', () => {
+                    this.isConnected = false;
+                    this.updateConnectionStatus();
+                    this.showToast('與伺服器斷線', true);
+                });
+
+                this.socket.on('attendeeUpdated', (attendee) => {
+                    if (attendee.event_id == this.currentEventId) {
+                        const index = this.attendees.findIndex(a => a.id === attendee.id);
+                        if (index !== -1) {
+                            this.attendees[index] = attendee;
+                            this.renderAttendees();
+                            this.loadStats();
+                        }
+                    }
+                });
+
+                this.socket.on('imageUpdated', (data) => {
+                    this.updateImageDisplay(data.imageUrl);
+                    this.showToast('集合地點圖片已更新');
+                });
+
+                this.socket.on('dataReset', (data) => {
+                    if (this.currentEventId) {
+                        this.attendees = data.attendees;
+                        this.renderAttendees();
+                        this.loadStats();
+                        this.showToast('活動資料已重設');
+                    }
+                });
+
+                this.socket.on('eventUserCountUpdate', (count) => {
+                    this.onlineUsers.textContent = `本活動線上人數: ${count}`;
+                });
+            }
+
+            bindEvents() {
+                this.confirmRestaurantBtn.addEventListener('click', () => {
+                    this.showRestaurantConfirmation();
+                });
+
+                this.uploadBtn.addEventListener('click', () => {
+                    this.imageUploader.click();
+                });
+
+                this.imageUploader.addEventListener('change', (e) => {
+                    this.handleImageUpload(e);
+                });
+
+                this.resetBtn.addEventListener('click', () => {
+                    this.resetEventData();
+                });
+
+                this.copyMessageBtn.addEventListener('click', () => {
+                    this.copyConfirmationMessage();
+                });
+
+                this.closeModalBtn.addEventListener('click', () => {
+                    this.closeModal();
+                });
+
+                this.attendeeList.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('check-in-btn')) {
+                        const id = parseInt(e.target.dataset.id);
+                        this.toggleCheckin(id);
+                    }
+                });
+
+                this.attendeeList.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('car-plate-input')) {
+                        const id = parseInt(e.target.dataset.id);
+                        const carPlate = e.target.value.trim().toUpperCase();
+                        this.updateCarPlate(id, carPlate);
+                    }
+                });
+            }
+
+            async loadEvents() {
+                try {
+                    const response = await fetch('/api/events');
+                    if (!response.ok) throw new Error('載入活動失敗');
+                    
+                    this.events = await response.json();
+                    this.renderEvents();
+                } catch (error) {
+                    this.showToast('載入活動清單失敗: ' + error.message, true);
+                }
+            }
+
+            renderEvents() {
+                this.eventsList.innerHTML = '';
+                
+                this.events.forEach(event => {
+                    const eventCard = document.createElement('div');
+                    eventCard.className = `event-card bg-white border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-lg ${this.currentEventId == event.id ? 'active-event' : ''}`;
+                    eventCard.innerHTML = `
+                        <h3 class="font-bold text-lg text-gray-900 mb-2">${event.name}</h3>
+                        <p class="text-gray-600 text-sm mb-1">📅 ${event.date} ${event.time || ''}</p>
+                        <p class="text-gray-600 text-sm">📍 ${event.location || ''}</p>
+                        <div class="mt-3 text-xs text-blue-600 font-semibold">
+                            ${this.currentEventId == event.id ? '👈 目前選中' : '點擊管理'}
+                        </div>
+                    `;
+                    
+                    eventCard.addEventListener('click', () => {
+                        this.selectEvent(event.id, event.name);
+                    });
+                    
+                    this.eventsList.appendChild(eventCard);
+                });
+            }
+
+            selectEvent(eventId, eventName) {
+                if (this.currentEventId) {
+                    this.socket.emit('leaveEvent', this.currentEventId);
+                }
+                
+                this.currentEventId = eventId;
+                this.attendeesTitle.textContent = `參加人員名單 - ${eventName}`;
+                this.socket.emit('joinEvent', eventId);
+                
+                this.renderEvents(); // 重新渲染以顯示選中狀態
+                this.currentEventSection.classList.remove('hidden');
+                this.loadEventData();
+            }
+
+            async loadEventData() {
+                try {
+                    await Promise.all([
+                        this.loadAttendees(),
+                        this.loadStats(),
+                        this.loadImage()
+                    ]);
+                } catch (error) {
+                    this.showToast('載入活動資料失敗: ' + error.message, true);
+                }
+            }
+
+            async loadAttendees() {
+                const response = await fetch(`/api/events/${this.currentEventId}/attendees`);
+                if (!response.ok) throw new Error('載入參加者失敗');
+                
+                this.attendees = await response.json();
+                this.renderAttendees();
+            }
+
+            async loadStats() {
+                const response = await fetch(`/api/events/${this.currentEventId}/stats`);
+                if (!response.ok) throw new Error('載入統計失敗');
+                
+                const stats = await response.json();
+                this.statsContainer.innerHTML = `
+                    <p>總計人數：<span class="font-bold text-xl text-blue-600">${stats.totalPeople}</span> 位</p>
+                    <p>已報到人數：<span class="font-bold text-xl text-green-600">${stats.checkedInPeople}</span> 位</p>
+                    <p>未報到人數：<span class="font-bold text-xl text-red-600">${stats.pendingPeople}</span> 位</p>
+                    <p>已登記車輛：<span class="font-bold text-xl text-indigo-600">${stats.carsRegistered}</span> 輛</p>
+                `;
+            }
+
+            async loadImage() {
+                const response = await fetch(`/api/events/${this.currentEventId}/image`);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                this.updateImageDisplay(data.imageUrl);
+            }
+
+            renderAttendees() {
+                this.attendeeList.innerHTML = '';
+                
+                this.attendees.forEach(p => {
+                    const isCheckedIn = p.status === 'checked-in';
+                    const cardClass = isCheckedIn ? 'status-checked-in' : 'status-pending';
+                    let nameDisplay = p.name;
+                    if (p.isLeader) nameDisplay += ' (領隊)';
+                    
+                    let details = `(共 ${p.total} 位)`;
+                    if (p.dependents > 0) {
+                        details = `(${p.relation} ${p.dependents} 位，共 ${p.total} 位)`;
+                    } else if (p.relation !== '本人') {
+                        details = `(${p.relation}，共 ${p.total} 位)`;
+                    }
+                    
+                    const personCardHTML = `
+                        <div class="p-4 rounded-xl transition-all duration-300 ${cardClass}">
+                            <div class="flex flex-wrap items-center justify-between gap-4">
+                                <div class="flex-grow">
+                                    <p class="font-bold text-lg">${nameDisplay} <span class="text-sm font-normal text-gray-600">${details}</span></p>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <label for="car-${p.id}" class="text-sm font-medium">車號:</label>
+                                        <input type="text" id="car-${p.id}" value="${p.carPlate || ''}" placeholder="無或尚未提供" data-id="${p.id}" class="car-plate-input w-36 px-2 py-1 border border-gray-300 rounded-md text-sm">
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <button class="check-in-btn ${isCheckedIn ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white font-bold py-2 px-4 rounded-lg" data-id="${p.id}">${isCheckedIn ? '取消報到' : '確認報到'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    this.attendeeList.insertAdjacentHTML('beforeend', personCardHTML);
+                });
+            }
+
+            async toggleCheckin(id) {
+                const attendee = this.attendees.find(a => a.id === id);
+                if (!attendee) return;
+
+                const newStatus = attendee.status === 'pending' ? 'checked-in' : 'pending';
+                
+                try {
+                    const response = await fetch(`/api/attendees/${id}/checkin`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('更新失敗');
+                    }
+                } catch (error) {
+                    this.showToast('更新失敗: ' + error.message, true);
+                }
+            }
+
+            async updateCarPlate(id, carPlate) {
+                try {
+                    const response = await fetch(`/api/attendees/${id}/carplate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ carPlate })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('更新車號失敗');
+                    }
+                } catch (error) {
+                    this.showToast('更新車號失敗: ' + error.message, true);
+                }
+            }
+
+            async handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showToast('圖片檔案過大，請選擇5MB以下的圖片', true);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (re) => {
+                    try {
+                        const response = await fetch(`/api/events/${this.currentEventId}/image`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageData: re.target.result })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('上傳圖片失敗');
+                        }
+                    } catch (error) {
+                        this.showToast('上傳圖片失敗: ' + error.message, true);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async resetEventData() {
+                if (!confirm('您確定要重設此活動的所有報到狀態、車號和圖片嗎？此操作無法復原。')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/events/${this.currentEventId}/reset`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('重設失敗');
+                    }
+                } catch (error) {
+                    this.showToast('重設失敗: ' + error.message, true);
+                }
+            }
+
+            showRestaurantConfirmation() {
+                const checkedInPeople = this.attendees.filter(p => p.status === 'checked-in').reduce((sum, p) => sum + p.total, 0);
+                const totalPeople = this.attendees.reduce((sum, p) => sum + p.total, 0);
+                
+                const message = `你好，目前已報到 ${checkedInPeople} 位，總計 ${totalPeople} 位，請協助確認，謝謝！`;
+                
+                this.confirmationContent.innerHTML = `
+                    <p class="text-lg mb-4">${message}</p>
+                    <div class="bg-gray-100 p-3 rounded-lg text-sm">
+                        <p><strong>詳細資訊：</strong></p>
+                        <p>已報到：${checkedInPeople} 位</p>
+                        <p>未報到：${totalPeople - checkedInPeople} 位</p>
+                        <p>總計：${totalPeople} 位</p>
+                    </div>
+                `;
+                
+                this.currentConfirmationMessage = message;
+                this.confirmationModal.classList.remove('hidden');
+            }
+
+            copyConfirmationMessage() {
+                if (this.currentConfirmationMessage) {
+                    navigator.clipboard.writeText(this.currentConfirmationMessage).then(() => {
+                        this.showToast('訊息已複製到剪貼簿');
+                    }).catch(() => {
+                        this.showToast('複製失敗', true);
+                    });
+                }
+            }
+
+            closeModal() {
+                this.confirmationModal.classList.add('hidden');
+            }
+
+            updateImageDisplay(imageUrl) {
+                if (imageUrl) {
+                    this.imagePreview.src = imageUrl;
+                    this.imagePreviewContainer.classList.remove('hidden');
+                    this.imagePlaceholder.classList.add('hidden');
+                } else {
+                    this.imagePreviewContainer.classList.add('hidden');
+                    this.imagePlaceholder.classList.remove('hidden');
+                }
+            }
+
+            updateConnectionStatus() {
+                if (this.isConnected) {
+                    this.connectionStatus.className = 'connection-indicator connected';
+                    this.connectionStatus.textContent = '已連線';
+                } else {
+                    this.connectionStatus.className = 'connection-indicator disconnected pulse-animation';
+                    this.connectionStatus.textContent = '離線';
+                }
+            }
+
+            showToast(message, isError = false) {
+                this.toast.textContent = message;
+                this.toast.className = 'toast show';
+                this.toast.style.backgroundColor = isError ? '#ef4444' : '#22c55e';
+                setTimeout(() => {
+                    this.toast.className = 'toast';
+                }, 3000);
+            }
+        }
+
+        // 啟動系統
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdminSystem();
+        });
+    </script>
+</body>
+</html>

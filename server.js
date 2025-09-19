@@ -25,10 +25,26 @@ app.use(express.static('public'));
 // 資料庫設定
 const db = new sqlite3.Database('event_checkin.db');
 
+// 管理員密碼
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
 // 初始化資料庫
 db.serialize(() => {
+  // 活動表
+  db.run(`CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT,
+    location TEXT,
+    status TEXT DEFAULT 'active',
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // 參加者表（加入event_id）
   db.run(`CREATE TABLE IF NOT EXISTS attendees (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     dependents INTEGER DEFAULT 0,
     relation TEXT DEFAULT '本人',
@@ -37,72 +53,205 @@ db.serialize(() => {
     total INTEGER DEFAULT 1,
     isLeader BOOLEAN DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events (id)
   )`);
 
+  // 活動圖片表（加入event_id）
   db.run(`CREATE TABLE IF NOT EXISTS event_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
     imageData TEXT,
-    uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events (id)
   )`);
 
-  // 檢查是否已有資料，沒有則插入初始資料
-  db.get("SELECT COUNT(*) as count FROM attendees", (err, row) => {
+  // 檢查是否已有活動，沒有則插入初始資料
+  db.get("SELECT COUNT(*) as count FROM events", (err, row) => {
     if (err) {
       console.error(err);
       return;
     }
     
     if (row.count === 0) {
-      const initialAttendees = [
-        { id: 1, name: '蘇有義', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 2, name: '林白姬', dependents: 2, relation: '眷屬', status: 'pending', carPlate: '', total: 3 },
-        { id: 3, name: '鄭東澤', dependents: 2, relation: '眷屬', status: 'pending', carPlate: '', total: 3, isLeader: true },
-        { id: 4, name: '江金靜', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 5, name: '黃文彬', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 6, name: '趙哲勗', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 7, name: '陳瑞麟', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 8, name: '陳昭宏', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 9, name: '蘇育賢', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 10, name: '馬士于', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 11, name: '呂勝雄', dependents: 1, relation: '眷屬', status: 'pending', carPlate: '', total: 2 },
-        { id: 12, name: '溫捷恩', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 13, name: '陳冠廷', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 14, name: '林俊祺', dependents: 1, relation: '眷屬', status: 'pending', carPlate: '', total: 2 },
-        { id: 15, name: '林世賢', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 16, name: '詹昆達', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 17, name: '劉盈蓉', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 18, name: '林于勝', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 19, name: '阮士閣', dependents: 1, relation: '眷屬', status: 'pending', carPlate: '', total: 2 },
-        { id: 20, name: '陳志明', dependents: 1, relation: '眷屬', status: 'pending', carPlate: '', total: 2 },
-        { id: 21, name: '曾冠傑', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 22, name: '胡富堯', dependents: 0, relation: '本人', status: 'pending', carPlate: '', total: 1 },
-        { id: 23, name: '楊璧菁', dependents: 0, relation: '警友', status: 'pending', carPlate: '', total: 1 },
-        { id: 24, name: '吳玉琴', dependents: 0, relation: '警友', status: 'pending', carPlate: '', total: 1 },
+      // 建立示範活動
+      const initialEvents = [
+        { name: '文康活動 - 旭集餐廳', date: '2025-09-22', time: '11:30', location: '旭集餐廳' },
+        { name: '文康活動 - 墾丁旅遊', date: '2025-10-15', time: '08:00', location: '墾丁國家公園' }
       ];
 
-      const stmt = db.prepare(`INSERT INTO attendees (id, name, dependents, relation, status, carPlate, total, isLeader) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+      const eventStmt = db.prepare(`INSERT INTO events (name, date, time, location) VALUES (?, ?, ?, ?)`);
       
-      initialAttendees.forEach(attendee => {
-        stmt.run(attendee.id, attendee.name, attendee.dependents, attendee.relation, 
-                attendee.status, attendee.carPlate, attendee.total, attendee.isLeader ? 1 : 0);
+      initialEvents.forEach((event, index) => {
+        eventStmt.run(event.name, event.date, event.time, event.location, function(err) {
+          if (err) {
+            console.error(err);
+            return;
+          }
+          
+          const eventId = this.lastID;
+          
+          // 為第一個活動建立參加者資料
+          if (index === 0) {
+            const initialAttendees = [
+              { name: '蘇有義', dependents: 0, relation: '本人', total: 1 },
+              { name: '林白姬', dependents: 2, relation: '眷屬', total: 3 },
+              { name: '鄭東澤', dependents: 2, relation: '眷屬', total: 3, isLeader: true },
+              { name: '江金靜', dependents: 0, relation: '本人', total: 1 },
+              { name: '黃文彬', dependents: 0, relation: '本人', total: 1 },
+              { name: '趙哲勗', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳瑞麟', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳昭宏', dependents: 0, relation: '本人', total: 1 },
+              { name: '蘇育賢', dependents: 0, relation: '本人', total: 1 },
+              { name: '馬士于', dependents: 0, relation: '本人', total: 1 },
+              { name: '呂勝雄', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '溫捷恩', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳冠廷', dependents: 0, relation: '本人', total: 1 },
+              { name: '林俊祺', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '林世賢', dependents: 0, relation: '本人', total: 1 },
+              { name: '詹昆達', dependents: 0, relation: '本人', total: 1 },
+              { name: '劉盈蓉', dependents: 0, relation: '本人', total: 1 },
+              { name: '林于勝', dependents: 0, relation: '本人', total: 1 },
+              { name: '阮士閣', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '陳志明', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '曾冠傑', dependents: 0, relation: '本人', total: 1 },
+              { name: '胡富堯', dependents: 0, relation: '本人', total: 1 },
+              { name: '楊璧菁', dependents: 0, relation: '警友', total: 1 },
+              { name: '吳玉琴', dependents: 0, relation: '警友', total: 1 }
+            ];
+
+            const attendeeStmt = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+                                           VALUES (?, ?, ?, ?, ?, ?)`);
+            
+            initialAttendees.forEach(attendee => {
+              attendeeStmt.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+                              attendee.total, attendee.isLeader ? 1 : 0);
+            });
+            attendeeStmt.finalize();
+          }
+          
+          // 為第二個活動建立部分參加者
+          if (index === 1) {
+            const tourAttendees = [
+              { name: '鄭東澤', dependents: 2, relation: '眷屬', total: 3, isLeader: true },
+              { name: '林白姬', dependents: 2, relation: '眷屬', total: 3 },
+              { name: '黃文彬', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '陳瑞麟', dependents: 0, relation: '本人', total: 1 },
+              { name: '溫捷恩', dependents: 1, relation: '眷屬', total: 2 }
+            ];
+
+            const tourStmt = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+                                       VALUES (?, ?, ?, ?, ?, ?)`);
+            
+            tourAttendees.forEach(attendee => {
+              tourStmt.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+                          attendee.total, attendee.isLeader ? 1 : 0);
+            });
+            tourStmt.finalize();
+          }
+        });
       });
-      stmt.finalize();
+      eventStmt.finalize();
       
-      console.log('初始參加者資料已插入');
+      console.log('初始活動和參加者資料已插入');
     }
   });
 });
 
 // API 路由
-app.get('/api/attendees', (req, res) => {
-  db.all("SELECT * FROM attendees ORDER BY id", (err, rows) => {
+
+// 登入相關API
+app.post('/api/login', (req, res) => {
+  const { name, password } = req.body;
+  
+  // 檢查是否為管理員
+  if (password === ADMIN_PASSWORD) {
+    return res.json({ 
+      type: 'admin', 
+      message: '管理員登入成功' 
+    });
+  }
+  
+  if (!name) {
+    return res.status(400).json({ error: '請輸入姓名' });
+  }
+  
+  // 查詢該姓名參加的活動
+  db.all(`
+    SELECT a.id as attendee_id, a.name, e.id as event_id, e.name as event_name, 
+           e.date, e.time, e.location
+    FROM attendees a 
+    JOIN events e ON a.event_id = e.id 
+    WHERE a.name LIKE ?
+    ORDER BY e.date DESC
+  `, [`%${name}%`], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: '找不到您的姓名，請確認拼寫是否正確' });
+    }
+    
+    if (rows.length === 1) {
+      // 只有一個活動，直接返回
+      return res.json({
+        type: 'personal',
+        attendee: rows[0],
+        redirect: `/personal/${rows[0].event_id}/${rows[0].attendee_id}`
+      });
+    }
+    
+    // 多個活動，返回選擇列表
+    res.json({
+      type: 'select',
+      name: name,
+      events: rows
+    });
+  });
+});
+
+// 獲取所有活動
+app.get('/api/events', (req, res) => {
+  db.all("SELECT * FROM events ORDER BY date DESC", (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     res.json(rows);
+  });
+});
+
+// 獲取特定活動的參加者
+app.get('/api/events/:eventId/attendees', (req, res) => {
+  const { eventId } = req.params;
+  db.all("SELECT * FROM attendees WHERE event_id = ? ORDER BY id", [eventId], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// 獲取特定參加者資料
+app.get('/api/attendees/:id', (req, res) => {
+  const { id } = req.params;
+  db.get(`
+    SELECT a.*, e.name as event_name, e.date, e.time, e.location
+    FROM attendees a 
+    JOIN events e ON a.event_id = e.id 
+    WHERE a.id = ?
+  `, [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ error: '找不到參加者' });
+      return;
+    }
+    res.json(row);
   });
 });
 
@@ -117,15 +266,20 @@ app.post('/api/attendees/:id/checkin', (req, res) => {
         return;
       }
       
-      // 獲取更新後的資料
-      db.get("SELECT * FROM attendees WHERE id = ?", [id], (err, row) => {
+      // 獲取更新後的資料（包含活動資訊）
+      db.get(`
+        SELECT a.*, e.name as event_name, e.date
+        FROM attendees a 
+        JOIN events e ON a.event_id = e.id 
+        WHERE a.id = ?
+      `, [id], (err, row) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
         
-        // 即時廣播更新
-        io.emit('attendeeUpdated', row);
+        // 即時廣播更新到該活動的房間
+        io.to(`event_${row.event_id}`).emit('attendeeUpdated', row);
         res.json(row);
       });
     });
@@ -142,22 +296,29 @@ app.post('/api/attendees/:id/carplate', (req, res) => {
         return;
       }
       
-      // 獲取更新後的資料
-      db.get("SELECT * FROM attendees WHERE id = ?", [id], (err, row) => {
+      // 獲取更新後的資料（包含活動資訊）
+      db.get(`
+        SELECT a.*, e.name as event_name, e.date
+        FROM attendees a 
+        JOIN events e ON a.event_id = e.id 
+        WHERE a.id = ?
+      `, [id], (err, row) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
         
-        // 即時廣播更新
-        io.emit('attendeeUpdated', row);
+        // 即時廣播更新到該活動的房間
+        io.to(`event_${row.event_id}`).emit('attendeeUpdated', row);
         res.json(row);
       });
     });
 });
 
-app.get('/api/image', (req, res) => {
-  db.get("SELECT imageData FROM event_images ORDER BY uploadedAt DESC LIMIT 1", (err, row) => {
+app.get('/api/events/:eventId/image', (req, res) => {
+  const { eventId } = req.params;
+  db.get("SELECT imageData FROM event_images WHERE event_id = ? ORDER BY uploadedAt DESC LIMIT 1", 
+    [eventId], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -166,87 +327,160 @@ app.get('/api/image', (req, res) => {
   });
 });
 
-app.post('/api/image', (req, res) => {
+app.post('/api/events/:eventId/image', (req, res) => {
+  const { eventId } = req.params;
   const { imageData } = req.body;
   
-  // 先刪除舊圖片
-  db.run("DELETE FROM event_images", (err) => {
+  // 先刪除該活動的舊圖片
+  db.run("DELETE FROM event_images WHERE event_id = ?", [eventId], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     
     // 插入新圖片
-    db.run("INSERT INTO event_images (imageData) VALUES (?)", [imageData], function(err) {
+    db.run("INSERT INTO event_images (event_id, imageData) VALUES (?, ?)", 
+      [eventId, imageData], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      // 即時廣播圖片更新
-      io.emit('imageUpdated', { imageUrl: imageData });
+      // 即時廣播圖片更新到該活動的房間
+      io.to(`event_${eventId}`).emit('imageUpdated', { imageUrl: imageData });
       res.json({ success: true });
     });
   });
 });
 
-app.post('/api/reset', (req, res) => {
+app.post('/api/events/:eventId/reset', (req, res) => {
+  const { eventId } = req.params;
+  
   db.serialize(() => {
-    db.run("UPDATE attendees SET status = 'pending', carPlate = '', updatedAt = CURRENT_TIMESTAMP", (err) => {
+    db.run("UPDATE attendees SET status = 'pending', carPlate = '', updatedAt = CURRENT_TIMESTAMP WHERE event_id = ?", 
+      [eventId], (err) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
     });
     
-    db.run("DELETE FROM event_images", (err) => {
+    db.run("DELETE FROM event_images WHERE event_id = ?", [eventId], (err) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      // 獲取重設後的所有資料
-      db.all("SELECT * FROM attendees ORDER BY id", (err, rows) => {
+      // 獲取重設後的該活動資料
+      db.all("SELECT * FROM attendees WHERE event_id = ? ORDER BY id", [eventId], (err, rows) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
         
-        // 即時廣播重設
-        io.emit('dataReset', { attendees: rows });
+        // 即時廣播重設到該活動的房間
+        io.to(`event_${eventId}`).emit('dataReset', { attendees: rows });
         res.json({ success: true, attendees: rows });
       });
     });
   });
 });
 
+// 獲取活動統計
+app.get('/api/events/:eventId/stats', (req, res) => {
+  const { eventId } = req.params;
+  
+  db.all(`
+    SELECT 
+      COUNT(*) as total_people,
+      SUM(total) as total_count,
+      SUM(CASE WHEN status = 'checked-in' THEN total ELSE 0 END) as checked_in_count,
+      COUNT(CASE WHEN carPlate != '' AND carPlate IS NOT NULL THEN 1 END) as cars_registered
+    FROM attendees 
+    WHERE event_id = ?
+  `, [eventId], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const stats = rows[0];
+    res.json({
+      totalPeople: stats.total_count || 0,
+      checkedInPeople: stats.checked_in_count || 0,
+      pendingPeople: (stats.total_count || 0) - (stats.checked_in_count || 0),
+      carsRegistered: stats.cars_registered || 0
+    });
+  });
+});
+
 // Socket.IO 連接處理
 let connectedUsers = 0;
+let eventRooms = {}; // 追蹤各活動房間的人數
 
 io.on('connection', (socket) => {
   connectedUsers++;
   console.log(`使用者連接，目前線上人數: ${connectedUsers}`);
   
-  // 廣播線上人數
-  io.emit('userCountUpdate', connectedUsers);
-  
-  // 發送初始資料給新連接的使用者
-  db.all("SELECT * FROM attendees ORDER BY id", (err, attendees) => {
-    if (!err) {
-      socket.emit('initialData', { attendees });
+  // 加入活動房間
+  socket.on('joinEvent', (eventId) => {
+    socket.join(`event_${eventId}`);
+    
+    if (!eventRooms[eventId]) {
+      eventRooms[eventId] = 0;
     }
+    eventRooms[eventId]++;
+    
+    console.log(`使用者加入活動 ${eventId}，該活動線上人數: ${eventRooms[eventId]}`);
+    
+    // 廣播該活動的線上人數
+    io.to(`event_${eventId}`).emit('eventUserCountUpdate', eventRooms[eventId]);
+    
+    // 發送該活動的初始資料
+    db.all("SELECT * FROM attendees WHERE event_id = ? ORDER BY id", [eventId], (err, attendees) => {
+      if (!err) {
+        socket.emit('initialData', { attendees });
+      }
+    });
+    
+    // 發送該活動的圖片
+    db.get("SELECT imageData FROM event_images WHERE event_id = ? ORDER BY uploadedAt DESC LIMIT 1", 
+      [eventId], (err, row) => {
+      if (!err && row) {
+        socket.emit('imageUpdated', { imageUrl: row.imageData });
+      }
+    });
   });
   
-  db.get("SELECT imageData FROM event_images ORDER BY uploadedAt DESC LIMIT 1", (err, row) => {
-    if (!err && row) {
-      socket.emit('imageUpdated', { imageUrl: row.imageData });
+  // 離開活動房間
+  socket.on('leaveEvent', (eventId) => {
+    socket.leave(`event_${eventId}`);
+    
+    if (eventRooms[eventId]) {
+      eventRooms[eventId]--;
+      if (eventRooms[eventId] <= 0) {
+        delete eventRooms[eventId];
+      } else {
+        io.to(`event_${eventId}`).emit('eventUserCountUpdate', eventRooms[eventId]);
+      }
     }
   });
   
   socket.on('disconnect', () => {
     connectedUsers--;
     console.log(`使用者離線，目前線上人數: ${connectedUsers}`);
-    io.emit('userCountUpdate', connectedUsers);
+    
+    // 從所有活動房間中移除並更新人數
+    Object.keys(eventRooms).forEach(eventId => {
+      if (eventRooms[eventId] > 0) {
+        eventRooms[eventId]--;
+        if (eventRooms[eventId] <= 0) {
+          delete eventRooms[eventId];
+        } else {
+          io.to(`event_${eventId}`).emit('eventUserCountUpdate', eventRooms[eventId]);
+        }
+      }
+    });
   });
 });
 
