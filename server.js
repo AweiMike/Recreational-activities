@@ -74,10 +74,12 @@ db.serialize(() => {
     }
     
     if (row.count === 0) {
-      // 建立示範活動
+      // 建立所有活動
       const initialEvents = [
         { name: '文康活動 - 旭集餐廳', date: '2025-09-22', time: '11:30', location: '旭集餐廳' },
-        { name: '文康活動 - 墾丁旅遊', date: '2025-10-15', time: '08:00', location: '墾丁國家公園' }
+        { name: '用餐活動 - 9月23日', date: '2025-09-23', time: '12:00', location: '訂位編號 TNXU202509231104' },
+        { name: '用餐活動 - 9月25日', date: '2025-09-25', time: '12:00', location: '訂位編號 TNXU202509251105' },
+        { name: '用餐活動 - 9月26日', date: '2025-09-26', time: '12:00', location: '訂位編號 TNXU202509261106' }
       ];
 
       const eventStmt = db.prepare(`INSERT INTO events (name, date, time, location) VALUES (?, ?, ?, ?)`);
@@ -130,30 +132,92 @@ db.serialize(() => {
             attendeeStmt.finalize();
           }
           
-          // 為第二個活動建立部分參加者
+          // 9月23日活動參加者
           if (index === 1) {
-            const tourAttendees = [
-              { name: '鄭東澤', dependents: 2, relation: '眷屬', total: 3, isLeader: true },
-              { name: '林白姬', dependents: 2, relation: '眷屬', total: 3 },
-              { name: '黃文彬', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '陳瑞麟', dependents: 0, relation: '本人', total: 1 },
-              { name: '溫捷恩', dependents: 1, relation: '眷屬', total: 2 }
+            const event0923Attendees = [
+              { name: '蘇錦修', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '梁秋和', dependents: 0, relation: '本人', total: 1 },
+              { name: '湯智傑', dependents: 0, relation: '本人', total: 1 },
+              { name: '魏妙廷', dependents: 0, relation: '本人', total: 1 },
+              { name: '楊釗驊', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳韻竹', dependents: 0, relation: '本人', total: 1 },
+              { name: '王曼丞', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '鄭敏弘', dependents: 0, relation: '本人', total: 1 }
             ];
 
-            const tourStmt = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
-                                       VALUES (?, ?, ?, ?, ?, ?)`);
+            const stmt23 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+                                     VALUES (?, ?, ?, ?, ?, ?)`);
             
-            tourAttendees.forEach(attendee => {
-              tourStmt.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
-                          attendee.total, attendee.isLeader ? 1 : 0);
+            event0923Attendees.forEach(attendee => {
+              stmt23.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+                        attendee.total, attendee.isLeader ? 1 : 0);
             });
-            tourStmt.finalize();
+            stmt23.finalize();
+          }
+          
+          // 9月25日活動參加者
+          if (index === 2) {
+            const event0925Attendees = [
+              { name: '徐天位', dependents: 0, relation: '本人', total: 1 },
+              { name: '謝昌', dependents: 0, relation: '本人', total: 1 },
+              { name: '張宗龍', dependents: 0, relation: '本人', total: 1 },
+              { name: '黃昌鈐', dependents: 0, relation: '本人', total: 1 },
+              { name: '林秀翰', dependents: 0, relation: '本人', total: 1 },
+              { name: '姜耀棠', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '楊家豪', dependents: 0, relation: '本人', total: 1 }
+            ];
+
+            const stmt25 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+                                     VALUES (?, ?, ?, ?, ?, ?)`);
+            
+            event0925Attendees.forEach(attendee => {
+              stmt25.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+                        attendee.total, attendee.isLeader ? 1 : 0);
+            });
+            stmt25.finalize();
+          }
+          
+          // 9月26日活動參加者
+          if (index === 3) {
+            const event0926Attendees = [
+              { name: '卓新裕', dependents: 0, relation: '本人', total: 1 },
+              { name: '張丞勛', dependents: 0, relation: '本人', total: 1 },
+              { name: '李世上', dependents: 0, relation: '本人', total: 1 },
+              { name: '陳信淮', dependents: 0, relation: '本人', total: 1 },
+              { name: '李金安', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '郭俊億', dependents: 0, relation: '本人', total: 1 },
+              { name: '黃振原', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '吳重宏', dependents: 0, relation: '本人', total: 1 },
+              { name: '許銘倫', dependents: 0, relation: '本人', total: 1 },
+              { name: '王琳敬', dependents: 0, relation: '本人', total: 1 },
+              { name: '朱唐緯', dependents: 0, relation: '本人', total: 1 },
+              { name: '曾靖宜', dependents: 0, relation: '本人', total: 1 },
+              { name: '林冠宏', dependents: 0, relation: '本人', total: 1 },
+              { name: '林芗玄', dependents: 0, relation: '本人', total: 1 },
+              { name: '黃壁儒', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '楊登旭', dependents: 0, relation: '本人', total: 1 },
+              { name: '蔡宙宏', dependents: 0, relation: '本人', total: 1 },
+              { name: '蔡仕良', dependents: 0, relation: '本人', total: 1 },
+              { name: '張志能', dependents: 0, relation: '本人', total: 1 },
+              { name: '鄭文興', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '鄭玠琳', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '謝安廷', dependents: 0, relation: '本人', total: 1 }
+            ];
+
+            const stmt26 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+                                     VALUES (?, ?, ?, ?, ?, ?)`);
+            
+            event0926Attendees.forEach(attendee => {
+              stmt26.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+                        attendee.total, attendee.isLeader ? 1 : 0);
+            });
+            stmt26.finalize();
           }
         });
       });
       eventStmt.finalize();
       
-      console.log('初始活動和參加者資料已插入');
+      console.log('初始所有活動和參加者資料已插入');
     }
   });
 });
