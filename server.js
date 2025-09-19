@@ -101,10 +101,10 @@ db.serialize(() => {
     if (row.count === 0) {
       // 建立所有活動
       const initialEvents = [
-        { name: '文康活動 - 旭集餐廳', date: '2025-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
-        { name: '用餐活動 - 9月23日', date: '2025-09-23', time: '11:30', location: '訂位編號 TNXU2025092311040' },
-        { name: '用餐活動 - 9月25日', date: '2025-09-25', time: '11:30', location: '訂位編號 TNXU2025092511059' },
-        { name: '用餐活動 - 9月26日', date: '2025-09-26', time: '11:30', location: '訂位編號 TNXU2025092611055' }
+        { name: '新化分局文康活動旭集餐廳 - 9月22日', date: '2025-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
+        { name: '新化分局文康活動旭集餐廳 - 9月23日', date: '2025-09-23', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092311040' },
+        { name: '新化分局文康活動旭集餐廳 - 9月25日', date: '2025-09-25', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092511059' },
+        { name: '新化分局文康活動旭集餐廳 - 9月26日', date: '2025-09-26', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092611055' }
       ];
 
       const eventStmt = db.prepare(`INSERT INTO events (name, date, time, location) VALUES (?, ?, ?, ?)`);
