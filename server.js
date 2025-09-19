@@ -161,12 +161,12 @@ db.serialize(() => {
           if (index === 1) {
             const event0923Attendees = [
               { name: '蘇錦修', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '張晴芙', dependents: 0, relation: '本人', total: 1 },
-              { name: '鄭菛孥', dependents: 0, relation: '本人', total: 1 },
+              { name: '張晴芝', dependents: 0, relation: '本人', total: 1 },
+              { name: '鄭莛宥', dependents: 0, relation: '本人', total: 1 },
               { name: '梁秋和', dependents: 0, relation: '本人', total: 1 },
               { name: '湯智傑', dependents: 0, relation: '本人', total: 1 },
               { name: '蔡明宗', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '魏妙廷', dependents: 0, relation: '本人', total: 1 },
+              { name: '魏妤庭', dependents: 0, relation: '本人', total: 1 },
               { name: '楊釗驊', dependents: 0, relation: '本人', total: 1 },
               { name: '陳韻竹', dependents: 0, relation: '本人', total: 1 },
               { name: '許亦祺', dependents: 1, relation: '眷屬', total: 2 },
