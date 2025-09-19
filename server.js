@@ -102,9 +102,9 @@ db.serialize(() => {
       // 建立所有活動
       const initialEvents = [
         { name: '文康活動 - 旭集餐廳', date: '2025-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
-        { name: '用餐活動 - 9月23日', date: '2025-09-23', time: '12:00', location: '訂位編號 TNXU202509231104' },
-        { name: '用餐活動 - 9月25日', date: '2025-09-25', time: '12:00', location: '訂位編號 TNXU202509251105' },
-        { name: '用餐活動 - 9月26日', date: '2025-09-26', time: '12:00', location: '訂位編號 TNXU202509261106' }
+        { name: '用餐活動 - 9月23日', date: '2025-09-23', time: '11:30', location: '訂位編號 TNXU2025092311040' },
+        { name: '用餐活動 - 9月25日', date: '2025-09-25', time: '11:30', location: '訂位編號 TNXU2025092511059' },
+        { name: '用餐活動 - 9月26日', date: '2025-09-26', time: '11:30', location: '訂位編號 TNXU2025092611055' }
       ];
 
       const eventStmt = db.prepare(`INSERT INTO events (name, date, time, location) VALUES (?, ?, ?, ?)`);
@@ -161,13 +161,19 @@ db.serialize(() => {
           if (index === 1) {
             const event0923Attendees = [
               { name: '蘇錦修', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '張晴芙', dependents: 0, relation: '本人', total: 1 },
+              { name: '鄭菛孥', dependents: 0, relation: '本人', total: 1 },
               { name: '梁秋和', dependents: 0, relation: '本人', total: 1 },
               { name: '湯智傑', dependents: 0, relation: '本人', total: 1 },
+              { name: '蔡明宗', dependents: 1, relation: '眷屬', total: 2 },
               { name: '魏妙廷', dependents: 0, relation: '本人', total: 1 },
               { name: '楊釗驊', dependents: 0, relation: '本人', total: 1 },
               { name: '陳韻竹', dependents: 0, relation: '本人', total: 1 },
+              { name: '許亦祺', dependents: 1, relation: '眷屬', total: 2 },
               { name: '王曼丞', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '鄭敏弘', dependents: 0, relation: '本人', total: 1 }
+              { name: '鄭敏弘', dependents: 0, relation: '本人', total: 1 },
+              { name: '周政男', dependents: 0, relation: '本人', total: 1 },
+              { name: '連尉智', dependents: 0, relation: '本人', total: 1 }
             ];
 
             const stmt23 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
@@ -184,12 +190,14 @@ db.serialize(() => {
           if (index === 2) {
             const event0925Attendees = [
               { name: '徐天位', dependents: 0, relation: '本人', total: 1 },
-              { name: '謝昌', dependents: 0, relation: '本人', total: 1 },
+              { name: '謝昌佑', dependents: 0, relation: '本人', total: 1 },
+              { name: '王耀賢', dependents: 0, relation: '本人', total: 1 },
               { name: '張宗龍', dependents: 0, relation: '本人', total: 1 },
               { name: '黃昌鈐', dependents: 0, relation: '本人', total: 1 },
               { name: '林秀翰', dependents: 0, relation: '本人', total: 1 },
               { name: '姜耀棠', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '楊家豪', dependents: 0, relation: '本人', total: 1 }
+              { name: '楊家豪', dependents: 0, relation: '本人', total: 1 },
+              { name: '謝安廷', dependents: 0, relation: '本人', total: 1 }
             ];
 
             const stmt25 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
@@ -208,6 +216,8 @@ db.serialize(() => {
               { name: '卓新裕', dependents: 0, relation: '本人', total: 1 },
               { name: '張丞勛', dependents: 0, relation: '本人', total: 1 },
               { name: '李世上', dependents: 0, relation: '本人', total: 1 },
+              { name: '鄭文興', dependents: 1, relation: '眷屬', total: 2 },
+              { name: '鄭玠琳', dependents: 1, relation: '眷屬', total: 2 },
               { name: '陳信淮', dependents: 0, relation: '本人', total: 1 },
               { name: '李金安', dependents: 1, relation: '眷屬', total: 2 },
               { name: '郭俊億', dependents: 0, relation: '本人', total: 1 },
@@ -223,10 +233,7 @@ db.serialize(() => {
               { name: '楊登旭', dependents: 0, relation: '本人', total: 1 },
               { name: '蔡宙宏', dependents: 0, relation: '本人', total: 1 },
               { name: '蔡仕良', dependents: 0, relation: '本人', total: 1 },
-              { name: '張志能', dependents: 0, relation: '本人', total: 1 },
-              { name: '鄭文興', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '鄭玠琳', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '謝安廷', dependents: 0, relation: '本人', total: 1 }
+              { name: '張志能', dependents: 0, relation: '本人', total: 1 }
             ];
 
             const stmt26 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
