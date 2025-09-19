@@ -28,6 +28,30 @@ const db = new sqlite3.Database('event_checkin.db');
 // 管理員密碼
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
+// 重設資料庫的API（仅供調試使用）
+app.post('/api/reset-database', (req, res) => {
+  const { password } = req.body;
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(403).json({ error: '無權限操作' });
+  }
+  
+  // 刪除所有表
+  db.serialize(() => {
+    db.run('DROP TABLE IF EXISTS attendees');
+    db.run('DROP TABLE IF EXISTS events');
+    db.run('DROP TABLE IF EXISTS event_images');
+    
+    console.log('資料庫已重設，重新啟動伺服器以初始化資料');
+    res.json({ message: '資料庫已重設，請重新啟動伺服器' });
+    
+    // 重新啟動進程
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
+  });
+});
+
 // 初始化資料庫
 db.serialize(() => {
   // 活動表
@@ -67,6 +91,7 @@ db.serialize(() => {
   )`);
 
   // 檢查是否已有活動，沒有則插入初始資料
+  // 注意：如果需要重新初始化，請使用 POST /api/reset-database
   db.get("SELECT COUNT(*) as count FROM events", (err, row) => {
     if (err) {
       console.error(err);
