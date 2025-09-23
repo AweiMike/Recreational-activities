@@ -101,7 +101,6 @@ db.serialize(() => {
     if (row.count === 0) {
       // 建立所有活動
       const initialEvents = [
-        { name: '新化分局文康活動旭集餐廳 - 9月22日', date: '2024-09-22', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092211059' },
         { name: '新化分局文康活動旭集餐廳 - 9月23日', date: '2024-09-23', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092311040' },
         { name: '新化分局文康活動旭集餐廳 - 9月25日', date: '2024-09-25', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092511059' },
         { name: '新化分局文康活動旭集餐廳 - 9月26日', date: '2024-09-26', time: '11:30', location: '旭集餐廳 | 訂位編號 TNXU2025092611055' }
@@ -118,47 +117,8 @@ db.serialize(() => {
           
           const eventId = this.lastID;
           
-          // 為第一個活動建立參加者資料
-          if (index === 0) {
-            const initialAttendees = [
-              { name: '蘇有義', dependents: 0, relation: '本人', total: 1 },
-              { name: '林白姬', dependents: 2, relation: '眷屬', total: 3 },
-              { name: '鄭東澤', dependents: 2, relation: '眷屬', total: 3, isLeader: true },
-              { name: '江金靜', dependents: 0, relation: '本人', total: 1 },
-              { name: '黃文彬', dependents: 0, relation: '本人', total: 1 },
-              { name: '趙哲勗', dependents: 0, relation: '本人', total: 1 },
-              { name: '陳瑞麟', dependents: 0, relation: '本人', total: 1 },
-              { name: '陳昭宏', dependents: 0, relation: '本人', total: 1 },
-              { name: '蘇育賢', dependents: 0, relation: '本人', total: 1 },
-              { name: '馬士于', dependents: 0, relation: '本人', total: 1 },
-              { name: '呂勝雄', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '溫捷恩', dependents: 0, relation: '本人', total: 1 },
-              { name: '陳冠廷', dependents: 0, relation: '本人', total: 1 },
-              { name: '林俊祺', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '林世賢', dependents: 0, relation: '本人', total: 1 },
-              { name: '詹昆達', dependents: 0, relation: '本人', total: 1 },
-              { name: '劉盈蓉', dependents: 0, relation: '本人', total: 1 },
-              { name: '林于勝', dependents: 0, relation: '本人', total: 1 },
-              { name: '阮士閣', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '陳志明', dependents: 1, relation: '眷屬', total: 2 },
-              { name: '曾冠傑', dependents: 0, relation: '本人', total: 1 },
-              { name: '胡富堯', dependents: 0, relation: '本人', total: 1 },
-              { name: '楊璧菁', dependents: 0, relation: '警友', total: 1 },
-              { name: '吳玉琴', dependents: 0, relation: '警友', total: 1 }
-            ];
-
-            const attendeeStmt = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
-                                           VALUES (?, ?, ?, ?, ?, ?)`);
-            
-            initialAttendees.forEach(attendee => {
-              attendeeStmt.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
-                              attendee.total, attendee.isLeader ? 1 : 0);
-            });
-            attendeeStmt.finalize();
-          }
-          
           // 9月23日活動參加者
-          if (index === 1) {
+          if (index === 0) {
             const event0923Attendees = [
               { name: '蘇錦修', dependents: 1, relation: '眷屬', total: 2 },
               { name: '張晴芝', dependents: 0, relation: '本人', total: 1 },
@@ -174,18 +134,18 @@ db.serialize(() => {
               { name: '周政男', dependents: 0, relation: '本人', total: 1 }
             ];
 
-            const stmt23 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader) 
+            const stmt23 = db.prepare(`INSERT INTO attendees (event_id, name, dependents, relation, total, isLeader)
                                      VALUES (?, ?, ?, ?, ?, ?)`);
-            
+
             event0923Attendees.forEach(attendee => {
-              stmt23.run(eventId, attendee.name, attendee.dependents, attendee.relation, 
+              stmt23.run(eventId, attendee.name, attendee.dependents, attendee.relation,
                         attendee.total, attendee.isLeader ? 1 : 0);
             });
             stmt23.finalize();
           }
           
           // 9月25日活動參加者 - 訂位編號 TNXU2025092511059
-          if (index === 2) {
+          if (index === 1) {
             const event0925Attendees = [
               { name: '徐天位', dependents: 0, relation: '本人', total: 1 },
               { name: '謝昌佑', dependents: 0, relation: '本人', total: 1 },
@@ -209,7 +169,7 @@ db.serialize(() => {
           }
           
           // 9月26日活動參加者 - 訂位編號 TNXU2025092611055
-          if (index === 3) {
+          if (index === 2) {
             const event0926Attendees = [
               { name: '卓新裕', dependents: 0, relation: '本人', total: 1 },
               { name: '張丞勛', dependents: 0, relation: '本人', total: 1 },
